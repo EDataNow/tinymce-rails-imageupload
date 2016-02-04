@@ -50,6 +50,7 @@
           method: "POST",
           enctype: 'multipart/form-data',
           accept_charset: "UTF-8",
+          id: "image-tinymce"
         });
 
         // Might have several instances on the same page,
@@ -117,10 +118,30 @@
           target.addEventListener('load', uploadDone, false);
         }
 
-        form.submit();
+        var jqueryForm = $("#image-tinymce")
+
+        var formData = new FormData();
+
+        formData.append("authenticity_token", jqueryForm.find("input[name=authenticity_token]").val())
+        formData.append("hint", jqueryForm.find("input[name=hint]").val())
+        formData.append("utf8", jqueryForm.find("input[name=utf8]").val())
+        formData.append("file", jqueryForm.find("input[type=file]")[0].files[0])
+
+        $.ajax({
+          url: ed.getParam("uploadimage_form_url", "/tinymce_assets"),
+          data: formData,
+          processData: false,
+          contentType: false,
+          type: 'post',
+          success: function(data) {
+            uploadDone(data)
+          }
+        })
+
+        // form.submit();
       }
 
-      function uploadDone() {
+      function uploadDone(json) {
         if(throbber) {
           throbber.hide();
         }
@@ -128,15 +149,15 @@
         var target = iframe.getEl();
         if(target.document || target.contentDocument) {
           var doc = target.contentDocument || target.contentWindow.document;
-          handleResponse(doc.getElementsByTagName("body")[0].innerHTML);
+          handleResponse(json);
         } else {
           handleError("Didn't get a response from the server");
         }
       }
 
-      function handleResponse(ret) {
+      function handleResponse(json) {
         try {
-          var json = tinymce.util.JSON.parse(ret);
+          // var json = tinymce.util.JSON.parse(ret);
 
           if(json["error"]) {
             handleError(json["error"]["message"]);
